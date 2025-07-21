@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MODEL_NAME=os.getenv("MODEL_NAME")
+MODEL_NAME=st.secrets["MODEL_NAME"]
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 generation_config = {
     "temperature": 0.4,
     "top_p": 1,
