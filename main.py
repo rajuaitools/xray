@@ -1,0 +1,75 @@
+import os
+
+import streamlit as st
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+MODEL_NAME=os.getenv("MODEL_NAME")
+
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+generation_config = {
+    "temperature": 0.4,
+    "top_p": 1,
+    "top_k": 32,
+    "max_output_tokens": 4096,
+    "response_mime_type": "text/plain",
+}
+
+safety_settings = {
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+}
+
+system_prompt = """
+As a highly skilled medical practitioner specializing in image analysis, you are tasked with examining medical images for a renowed hospital. Your expertise is crucial in identifiying any anomalies, diseases, or health issue that may be present in the images.
+
+Your Responsibilities include:
+1. Detailed Analysis: Thoroughly analyze each image, focusing on identifying any abnormal findings.
+2. Findings Report: Document all observed anomalies or signs of disease. Clearly articulate these findings in a structured format.
+3. Recommendations and Next Steps: Based on your analysis, suggess potential next steps, including further tests or treatmets.
+4. Treatment Suggestions: If appropriate, recommend possible treatment options or interventions.
+
+Important Notes:
+1. Scope of Response: Only respond if the image pertains to human health issues.
+2. Clarity of Image: In cases where the image quality impedes clear analysis, note that certain aspects are 'Unable to be determined based on the provided image.'
+3. Disclaimer: Accompany your analysis with the disclaimer: "Consult with Doctor before making any medical decisions."
+4. Your Insight are Invaluable in guiding clinical decisions. Please proceed with the analysis, adhering to the structured approach outlined above.
+
+Please provide me an output response with these 4 headings Detailed Analysis, Findings Report, Recommendations and Next Steps, Treatment Suggestions. And for each headings, use bold text to highlight the heading.
+"""
+
+model = genai.GenerativeModel(model_name=MODEL_NAME, generation_config=generation_config,
+                              safety_settings=safety_settings)
+
+st.set_page_config(page_title="X-Ray Image Analysis", page_icon=":robot:")
+
+st.title(" XRAY Image Analysis")
+
+st.subheader("An AI tool to analyze xray images. Don't Completely rely on this one. Just for suggestion")
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+if uploaded_file:
+    st.image(uploaded_file, width=400, caption="Uploaded Image")
+
+submit_button = st.button("Analyze")
+if submit_button:
+    # process image
+    image_data = uploaded_file.getvalue()
+    files = [
+        {
+            "mime_type": "image/jpeg",
+            "data": image_data
+        }
+    ]
+    response = model.generate_content([
+        files[0],
+        system_prompt
+    ])
+
+    st.title("Analysis Report")
+    st.write(response.text)
